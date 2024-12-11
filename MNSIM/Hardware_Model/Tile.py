@@ -5,6 +5,8 @@ import os
 import math
 from numpy import *
 import numpy as np
+import sys
+sys.path.append(os.getcwd())
 from MNSIM.Hardware_Model.PE import ProcessElement
 from MNSIM.Hardware_Model.Adder import adder
 from MNSIM.Hardware_Model.Buffer import buffer
@@ -17,9 +19,9 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 
 class tile(ProcessElement):
-	def __init__(self, SimConfig_path):
+	def __init__(self, SimConfig_path,device_type):
 		# layer_num is a list with the size of 1xPE_num
-		ProcessElement.__init__(self, SimConfig_path)
+		ProcessElement.__init__(self, SimConfig_path,device_type)
 		tile_config = cp.ConfigParser()
 		tile_config.read(SimConfig_path, encoding='UTF-8')
 		self.tile_PE_num = list(map(int, tile_config.get('Tile level', 'PE_Num').split(',')))
@@ -32,11 +34,11 @@ class tile(ProcessElement):
 		self.tile_simulation_level = int(tile_config.get('Algorithm Configuration', 'Simulation_Level'))
 		self.tile_PE_list = []
 		self.tile_PE_enable = []
-		for i in range(self.tile_PE_num[0]):
+		for i in range(self.tile_PE_num[0]): #创建一个PE的对象数组
 			self.tile_PE_list.append([])
 			self.tile_PE_enable.append([])
 			for j in range(self.tile_PE_num[1]):
-				__PE = ProcessElement(SimConfig_path)
+				__PE = ProcessElement(SimConfig_path,self.device_type)
 				self.tile_PE_list[i].append(__PE)
 				self.tile_PE_enable[i].append(0)
 		self.layer_type = 'conv'
@@ -562,8 +564,9 @@ class tile(ProcessElement):
 		print("-----------------------------------------------------------------")
 	
 def tile_test():
+	test_SimConfig_path = os.path.join(os.getcwd(), 'SimConfig.ini')
 	print("load file:", test_SimConfig_path)
-	_tile = tile(test_SimConfig_path)
+	_tile = tile(test_SimConfig_path,"DCIM")
 	print(_tile.xbar_column)
 	_tile0 = _tile
 	_tile0.tile_read_config()

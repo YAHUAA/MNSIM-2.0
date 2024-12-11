@@ -3,6 +3,8 @@
 import configparser as cp
 import os
 import math
+import sys,importlib
+sys.path.append(os.getcwd())
 from MNSIM.Hardware_Model.Device import device
 import numpy as np
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
@@ -10,30 +12,40 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 
 class crossbar(device):
-	def __init__(self, SimConfig_path):
-		device.__init__(self,SimConfig_path)
+	def __init__(self, SimConfig_path,device_type):
+		device.__init__(self,SimConfig_path,device_type)
 		xbar_config = cp.ConfigParser()
 		xbar_config.read(SimConfig_path, encoding='UTF-8')
 		self.xbar_size = list(map(int, xbar_config.get('Crossbar level', 'Xbar_Size').split(',')))
-		self.xbar_row = int(self.xbar_size[0])
-		self.xbar_column = int(self.xbar_size[1])
+
+		if device_type == "DCIM" or device_type =="ACIM_HA":
+			self.xbar_size = [self.xbar_size[0], self.xbar_size[1]]
+			self.xbar_row = int(self.xbar_size[0])
+			self.xbar_column = int(self.xbar_size[1])
+		elif device_type == "ACIM_LA":
+			self.xbar_size = [self.xbar_size[2], self.xbar_size[3]]
+			self.xbar_row = int(self.xbar_size[0])
+			self.xbar_column = int(self.xbar_size[1])
+
 		self.subarray_size = int(xbar_config.get('Crossbar level', 'Subarray_Size'))
 		assert self.xbar_row % self.subarray_size == 0, "The crossbar size must be divisible by the subarray size"
 		self.subarray_num = self.xbar_row/self.subarray_size
-		self.PIM_type = int(xbar_config.get('Process element level', 'PIM_Type'))
+		self.PIM_type = int(xbar_config.get('Process element level', 'PIM_Type'))   #acim or dcim
 		self.cell_type = xbar_config.get('Crossbar level', 'Cell_Type')
 		self.transistor_tech = int(xbar_config.get('Crossbar level', 'Transistor_Tech'))
-		self.wire_resistance = float(xbar_config.get('Crossbar level', 'Wire_Resistance'))
-		self.wire_capacity = float(xbar_config.get('Crossbar level', 'Wire_Capacity'))
+		self.wire_resistance = float(xbar_config.get('Crossbar level', 'Wire_Resistance')) 
+		self.wire_capacity = float(xbar_config.get('Crossbar level', 'Wire_Capacity')) 
 		self.area_calculation_method = int(xbar_config.get('Crossbar level', 'Area_Calculation'))
 		self.xbar_area = 0
 		self.xbar_simulation_level = int(xbar_config.get('Algorithm Configuration', 'Simulation_Level'))
 
-		if self.device_type == 'NVM':
+		if self.device_type == 'ACIM_HA' or self.device_type == 'ACIM_LA':
 			self.xbar_load_resistance = float(xbar_config.get('Crossbar level', 'Load_Resistance'))
 			if self.xbar_load_resistance == -1:
 				self.xbar_load_resistance = math.sqrt(self.device_resistance[0] * self.device_resistance[-1])
 			assert self.xbar_load_resistance >0, "Load resistance must be > 0"
+		else:
+			self.xbar_load_resistance = -1  # dcim
 
 		self.xbar_write_matrix = np.zeros((self.xbar_row,self.xbar_column))# * 1/self.device_resistance[-1]
 		self.xbar_write_vector = np.zeros((self.xbar_row,1))
@@ -137,24 +149,33 @@ class crossbar(device):
 
 	def calculate_xbar_area(self):
 		# Area unit: um^2
-		if self.area_calculation_method == 0:
-			area_factor = 1
-			if self.PIM_type:
-				self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area + self.xbar_row * (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2
-				# when consider driver for digital PIM, the area is: self.xbar_row * (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2
-			else:
-				self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area + 1150*self.xbar_row
-				# in A Fully Integrated Analog ReRAM Based 78.4TOPS/W Compute-In-Memory Chip with Fully Parallel MAC Computing, the driver area is 1150, for others, the driver area is (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2, ref: Multi-level wordline driver for robust SRAM design in nano-scale CMOS technology
+		# if self.area_calculation_method == 0:
+		# 	area_factor = 1
+		# 	if self.PIM_type:
+		# 		self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area + self.xbar_row * (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2
+		# 		# when consider driver for digital PIM, the area is: self.xbar_row * (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2
+		# 	else:
+		# 		self.xbar_area = area_factor * self.xbar_row * self.xbar_column * self.device_area + 1150*self.xbar_row
+		# 		# in A Fully Integrated Analog ReRAM Based 78.4TOPS/W Compute-In-Memory Chip with Fully Parallel MAC Computing, the driver area is 1150, for others, the driver area is (7.3*2.7+9.5*3.8)*(self.transistor_tech/65)**2, ref: Multi-level wordline driver for robust SRAM design in nano-scale CMOS technology
+		# else:
+		# 	if self.device_type == 'SRAM':
+		# 		self.xbar_area = self.xbar_row * self.xbar_column * 5
+		# 	else:
+		# 		WL_ratio = 3
+		# 		# WL_ratio is the technology parameter W/L of the transistor
+		# 		if self.cell_type[0] == '0':
+		# 			self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+		# 		else:
+		# 			self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+		
+		if self.device_type == "DCIM":
+			self.xbar_area = self.device_area * self.xbar_row * self.xbar_column
+		elif self.device_type == "ACIM_HA":
+			self.xbar_area = self.device_area * self.xbar_row * self.xbar_column
+		elif self.device_type == "ACIM_LA":
+			self.xbar_area = self.device_area * self.xbar_row * self.xbar_column
 		else:
-			if self.device_type == 'SRAM':
-				self.xbar_area = self.xbar_row * self.xbar_column * 5
-			else:
-				WL_ratio = 3
-				# WL_ratio is the technology parameter W/L of the transistor
-				if self.cell_type[0] == '0':
-					self.xbar_area = 4 * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
-				else:
-					self.xbar_area = 3 * (WL_ratio + 1) * self.xbar_row * self.xbar_column * self.device_tech**2 * 1e-6
+			raise ValueError("Unsupported device type")
 
 
 	def calculate_wire_resistance(self):
@@ -174,17 +195,29 @@ class crossbar(device):
 		# unit: ns
 		self.calculate_wire_resistance()
 		self.calculate_wire_capacity()
-		if self.cell_type == '0T1R':
-			size = self.xbar_row*self.xbar_column / 1024 / 8  # KB
-			wire_latency = 0.001 * (0.0002 * size ** 2 + 5 * 10 ** -6 * size + 4 * 10 ** -14)  # ns
+		# if self.cell_type == '0T1R':
+		# 	size = self.xbar_row*self.xbar_column / 1024 / 8  # KB
+		# 	wire_latency = 0.001 * (0.0002 * size ** 2 + 5 * 10 ** -6 * size + 4 * 10 ** -14)  # ns
+		# else:
+		# 	size = self.xbar_row * self.xbar_column / 1024 / 8  # KB
+		# 	wire_latency = 0.001 * (0.0002 * size ** 2 + 5 * 10 ** -6 * size + 4 * 10 ** -14)  # ns
+		# # wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * self.xbar_row 1e3
+		# 	#TODO: Update the calculation formula considering the branches
+		# self.xbar_read_latency = self.device_read_latency + wire_latency
+
+	#TODO：consider the wire latency in the read operation for different device types
+		if self.device_type == "DCIM":
+			wire_latency = 1  
+		elif self.device_type == "ACIM_HA":
+			wire_latency = 1
+		elif self.device_type == "ACIM_LA":
+			wire_latency = 1
 		else:
-			size = self.xbar_row * self.xbar_column / 1024 / 8  # KB
-			wire_latency = 0.001 * (0.0002 * size ** 2 + 5 * 10 ** -6 * size + 4 * 10 ** -14)  # ns
-		# wire_latency = 0.5 * self.wire_resistance * self.wire_capacity * self.xbar_row 1e3
-			#TODO: Update the calculation formula considering the branches
-		self.xbar_read_latency = self.device_read_latency + wire_latency
+			raise ValueError("Unsupported device type")
 
 	def calculate_xbar_write_latency(self):
+		#TODO: consider the wire latency in the write operation for different device types
+
 		# Notice: before calculating write latency, xbar_write_config must be executed
 		self.xbar_write_latency	= self.device_write_latency * self.xbar_num_write_row
 		# self.xbar_write_latency = self.device_write_latency * min(math.ceil(num_write_row/num_multi_row), num_write_column) * min(num_multi_row, num_write_row)
@@ -240,12 +273,12 @@ class crossbar(device):
 		elif self.device_type == 'SRAM':
 			self.xbar_read_energy = self.xbar_num_read_row * self.xbar_num_read_column * self.device_read_energy * 1e6
 
-	def calculate_xbar_write_energy(self):
+	def calculate_xbar_write_energy(self):  
 		#unit: nJ
-		if self.device_type == 'NVM':
+		if self.device_type == 'ACIM_HA' or self.device_type == 'ACIM_LA':
 			self.xbar_write_energy = self.xbar_write_power * self.device_write_latency
 			#Do not consider the wire power in write operation	
-		elif self.device_type == 'SRAM':
+		elif self.device_type == 'DCIM':
 			self.xbar_write_energy = self.xbar_num_write_row * self.xbar_num_write_column * self.device_write_energy * 1e6
 
 	def xbar_output(self):
@@ -267,8 +300,11 @@ class crossbar(device):
 
 	
 def xbar_test():
+	test_SimConfig_path = os.path.join(os.getcwd(),"SimConfig.ini")
 	print("load file:",test_SimConfig_path)
-	_xbar = crossbar(test_SimConfig_path)
+	if os.open(test_SimConfig_path,os.O_RDONLY) == -1:
+		raise FileNotFoundError("SimConfig file not found")
+	_xbar = crossbar(test_SimConfig_path,"DCIM")
 	print('------------')
 	_xbar.xbar_read_config()
 	_xbar.calculate_xbar_area()
@@ -276,7 +312,6 @@ def xbar_test():
 	_xbar.calculate_xbar_read_power()
 	_xbar.calculate_xbar_read_energy()
 	_xbar.xbar_output()
-
 
 if __name__ == '__main__':
 	xbar_test()

@@ -4,8 +4,8 @@ import configparser as cp
 import os
 import math
 
-test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
-
+#test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())), "SimConfig.ini")
+test_SimConfig_path = os.path.join(os.getcwd(), "SimConfig.ini")
 
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
@@ -34,6 +34,7 @@ class buffer(object):
         if self.buf_bitwidth == 0:
             self.buf_bitwidth = 256 # bit
         self.index = 0
+        #不同的buf-tech、buf-size、buf-bitwidth（buffer的配置）对应的不同的area、leakage-power、rpower、wpower、cycle
         if self.buf_Tech >= 90:
             if self.buf_Size <= 2:
                 if self.buf_bitwidth <= 64:

@@ -8,32 +8,111 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 
 
 class device(object):
-	def __init__(self, SimConfig_path):
+	def __init__(self, SimConfig_path,device_type):
 		device_config = cp.ConfigParser()
 		device_config.read(SimConfig_path, encoding='UTF-8')
-		self.device_tech = float(device_config.get('Device level', 'Device_Tech'))
-		self.device_type = device_config.get('Device level', 'Device_Type')
-		self.device_area = float(device_config.get('Device level', 'Device_Area'))
-		self.device_read_voltage_level = int(device_config.get('Device level', 'Read_Level'))
-		assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
-		self.device_read_voltage = list(map(float, device_config.get('Device level', 'Read_Voltage').split(',')))
-		assert self.device_read_voltage_level == len(self.device_read_voltage), "Read voltage setting error"
+		self.device_type = device_type
+		# self.device_tech = float(device_config.get('Device level', 'Device_Tech'))
+		# self.device_type = device_config.get('Device level', 'Device_Type')
+		# self.device_area = float(device_config.get('Device level', 'Device_Area'))
+		# self.device_read_voltage_level = int(device_config.get('Device level', 'Read_Level'))
+		# assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
+		# self.device_read_voltage = list(map(float, device_config.get('Device level', 'Read_Voltage').split(',')))
+		# assert self.device_read_voltage_level == len(self.device_read_voltage), "Read voltage setting error"
 
-		self.device_write_voltage_level = int(device_config.get('Device level', 'Write_Level'))
-		assert self.device_write_voltage_level >= 0, "Write voltage level < 0"
-		self.device_write_voltage = list(map(float, device_config.get('Device level', 'Write_Voltage').split(',')))
-		assert self.device_write_voltage_level == len(self.device_write_voltage), "Write voltage setting error"
+		# self.device_write_voltage_level = int(device_config.get('Device level', 'Write_Level'))
+		# assert self.device_write_voltage_level >= 0, "Write voltage level < 0"
+		# self.device_write_voltage = list(map(float, device_config.get('Device level', 'Write_Voltage').split(',')))
+		# assert self.device_write_voltage_level == len(self.device_write_voltage), "Write voltage setting error"
 
-		self.device_read_latency = float(device_config.get('Device level', 'Read_Latency'))
-		self.device_write_latency = float(device_config.get('Device level', 'Write_Latency'))
+		# self.device_read_latency = float(device_config.get('Device level', 'Read_Latency'))
+		# self.device_write_latency = float(device_config.get('Device level', 'Write_Latency'))
 
-		if self.device_type == "NVM":
-			self.device_level = int(device_config.get('Device level', 'Device_Level'))
-			assert self.device_level >= 0, "NVM resistance level < 0"
-			self.device_resistance = list(map(float, device_config.get('Device level', 'Device_Resistance').split(',')))
-			assert self.device_level == len(self.device_resistance), "NVM resistance setting error"
+		if self.device_type == "DCIM":
+			self.device_tech = float(device_config.get('DCIM', 'Device_Tech'))
+			#self.device_type = device_config.get('DCIM', 'Device_Type')
+			self.device_area = float(device_config.get('DCIM', 'Device_Area'))
+			self.device_read_voltage_level = int(device_config.get('DCIM', 'Read_Level'))
+			assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
+			self.device_read_voltage = list(map(float, device_config.get('DCIM', 'Read_Voltage').split(',')))
+			assert self.device_read_voltage_level == len(self.device_read_voltage), "Read voltage setting error"
 
-			self.decice_variation = float(device_config.get('Device level', 'Device_Variation'))
+			self.device_write_voltage_level = int(device_config.get('DCIM', 'Write_Level'))
+			assert self.device_write_voltage_level >= 0, "Write voltage level < 0"
+			self.device_write_voltage = list(map(float, device_config.get('DCIM', 'Write_Voltage').split(',')))
+			assert self.device_write_voltage_level == len(self.device_write_voltage), "Write voltage setting error"
+
+			#-----------------#
+			self.device_read_latency = float(device_config.get('DCIM', 'Read_Latency'))
+			self.device_write_latency = float(device_config.get('DCIM', 'Write_Latency'))
+
+			self.device_level = int(device_config.get('DCIM', 'Device_Level'))
+			assert self.device_level >= 0, "DCIM resistance level < 0"
+			self.device_resistance = list(map(float, device_config.get('DCIM', 'Device_Resistance').split(',')))
+			assert self.device_level == len(self.device_resistance), "DCIM resistance setting error"
+
+			self.device_variation = float(device_config.get('DCIM', 'Device_Variation'))
+			# Device variation is defined as \Delta R / R
+
+			self.device_read_power = 0
+			self.device_write_power = 0
+			# print("Device configuration is loaded")
+			self.device_read_energy = 0
+			self.device_write_energy = 0
+
+		elif self.device_type == "acim_ha":
+			self.device_tech = float(device_config.get('ACIM_HA', 'Device_Tech'))
+			#self.device_type = device_config.get('ACIM_HA', 'Device_Type')
+			self.device_area = float(device_config.get('ACIM_HA', 'Device_Area'))
+			self.device_read_voltage_level = int(device_config.get('ACIM_HA', 'Read_Level'))
+			assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
+			self.device_read_voltage = list(map(float, device_config.get('ACIM_HA', 'Read_Voltage').split(',')))
+			assert self.device_read_voltage_level == len(self.device_read_voltage), "Read voltage setting error"
+
+			self.device_write_voltage_level = int(device_config.get('ACIM_HA', 'Write_Level'))
+			assert self.device_write_voltage_level >= 0, "Write voltage level < 0"
+			self.device_write_voltage = list(map(float, device_config.get('ACIM_HA', 'Write_Voltage').split(',')))
+			assert self.device_write_voltage_level == len(self.device_write_voltage), "Write voltage setting error"
+
+			self.device_read_latency = float(device_config.get('ACIM_HA', 'Read_Latency'))
+			self.device_write_latency = float(device_config.get('ACIM_HA', 'Write_Latency'))
+
+			self.device_level = 2
+			self.device_resistance = list(map(float,device_config.get('ACIM_HA', 'Device_Resistance').split(',')))
+			assert self.device_level == len(self.device_resistance), "ACIM_HA resistance setting error"
+
+			self.device_variation = float(device_config.get('ACIM_HA', 'Device_Variation'))
+			# Device variation is defined as \Delta R / R
+
+			self.device_read_power = 0
+			self.device_write_power = 0
+			# print("Device configuration is loaded")
+			self.device_read_energy = 0
+			self.device_write_energy = 0
+
+
+		elif self.device_type == "acim_la":
+			self.device_tech = float(device_config.get('ACIM_LA', 'Device_Tech'))
+			#self.device_type = device_config.get('ACIM_LA', 'Device_Type')
+			self.device_area = float(device_config.get('ACIM_LA', 'Device_Area'))
+			self.device_read_voltage_level = int(device_config.get('ACIM_LA', 'Read_Level'))
+			assert self.device_read_voltage_level >= 0, "Read voltage level < 0"
+			self.device_read_voltage = list(map(float, device_config.get('ACIM_LA', 'Read_Voltage').split(',')))
+			assert self.device_read_voltage_level == len(self.device_read_voltage), "Read voltage setting error"
+
+			self.device_write_voltage_level = int(device_config.get('ACIM_LA', 'Write_Level'))
+			assert self.device_write_voltage_level >= 0, "Write voltage level < 0"
+			self.device_write_voltage = list(map(float, device_config.get('ACIM_LA', 'Write_Voltage').split(',')))
+			assert self.device_write_voltage_level == len(self.device_write_voltage), "Write voltage setting error"
+
+			self.device_read_latency = float(device_config.get('ACIM_LA', 'Read_Latency'))
+			self.device_write_latency = float(device_config.get('ACIM_LA', 'Write_Latency'))
+
+			self.device_level = 4
+			self.device_resistance = list(map(float,device_config.get('ACIM_LA', 'Device_Resistance').split(',')))
+			assert self.device_level == len(self.device_resistance), "ACIM_LA resistance setting error"
+
+			self.device_variation = float(device_config.get('ACIM_LA', 'Device_Variation'))
 			# Device variation is defined as \Delta R / R
 
 			self.device_read_power = 0
@@ -88,18 +167,17 @@ class device(object):
 		print("write_latency:", self.device_write_latency, "ns")
 		print("device_level", self.device_level)
 		print("device_resistance:", self.device_resistance, "(ohm)")
-		print("device_variation:", self.decice_variation, "%")
+		print("device_variation:", self.device_variation, "%")
 		print("device_read_power:", self.device_read_power, "W")
 		print("device_write_power:", self.device_write_power, "W")
 
 	
 def device_test():
 	print("load file:",test_SimConfig_path)
-	_device = device(test_SimConfig_path)
+	_device = device(test_SimConfig_path,"DCIM")
 	_device.calculate_device_read_power()
 	_device.calculate_device_write_power()
 	_device.device_output()
-
 
 if __name__ == '__main__':
 	device_test()

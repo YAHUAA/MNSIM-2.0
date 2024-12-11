@@ -22,8 +22,9 @@ test_SimConfig_path = os.path.join(work_path,"SimConfig.ini")
 
 
 class ProcessElement(crossbar, DAC, ADC):
-	def __init__(self, SimConfig_path):
-		crossbar.__init__(self, SimConfig_path)
+	def __init__(self, SimConfig_path,device_type):
+		self.device_type = device_type
+		crossbar.__init__(self, SimConfig_path,device_type)
 		DAC.__init__(self, SimConfig_path)
 		ADC.__init__(self, SimConfig_path)
 		PE_config = cp.ConfigParser()
@@ -54,7 +55,7 @@ class ProcessElement(crossbar, DAC, ADC):
 			self.PE_xbar_list.append([])
 			self.PE_xbar_enable.append([])
 			for j in range(self.PE_multiplex_xbar_num[0] * self.PE_multiplex_xbar_num[1]):
-				__xbar = crossbar(SimConfig_path)
+				__xbar = crossbar(SimConfig_path,self.device_type)
 				self.PE_xbar_list[i].append(__xbar)
 				self.PE_xbar_enable[i].append(0)
 
@@ -174,7 +175,8 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.calculate_xbar_area()
 		self.calculate_ADC_area()
 		if self.PE_group_ADC_num == 0:
-			self.PE_group_ADC_num = min((self.sub_position+1) * math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)), self.xbar_column)*self.subarray_num
+			self.PE_group_ADC_num = min((self.sub_position+1) * math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)), self.xbar_column)*self.subarray_num  
+			#QUES:(self.sub_position+1)  与 self.PE_multiplex_xbar_num[1] 不重复吗
 		else:
 			assert self.PE_group_ADC_num > 0, "ADC number in one group < 0"
 		self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
@@ -186,7 +188,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.calculate_xbar_area()
 		self.calculate_DAC_area()
 		if self.PE_group_DAC_num == 0:
-			self.PE_group_DAC_num = min(math.ceil(math.sqrt(self.xbar_area)/subarray_num * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.subarray_size)*self.subarray_num
+			self.PE_group_DAC_num = min(math.ceil(math.sqrt(self.xbar_area)/self.subarray_num * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.subarray_size)*self.subarray_num
 		else:
 			assert self.PE_group_DAC_num > 0, "DAC number in one group < 0"
 		self.PE_DAC_num = self.group_num * self.PE_group_DAC_num

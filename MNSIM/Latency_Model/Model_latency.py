@@ -64,7 +64,9 @@ def inoutsize_conversion(kernelsize, padding, stride, outputsize):
 
 
 class Model_latency():
-    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None, TCG_mapping=None,device_cfg = None):
+        self.device_cfg = device_cfg
+
         modelL_config = cp.ConfigParser()
         modelL_config.read(SimConfig_path, encoding='UTF-8')
         NoC_Compute = int(modelL_config.get('Algorithm Configuration', 'NoC_enable'))
@@ -73,10 +75,10 @@ class Model_latency():
         if multiple is None:
             multiple = [1] * len(self.NetStruct)
         if TCG_mapping is None:
-            TCG_mapping = TCG(NetStruct, SimConfig_path, multiple)
+            TCG_mapping = TCG(NetStruct, SimConfig_path, multiple,device_cfg)    #对于不同器件，需要重新生成TCG
         self.graph = TCG_mapping
-        self.graph.mapping_net()
-        self.graph.calculate_transfer_distance()
+        self.graph.mapping_net()   # 分配id到tile阵列中
+        self.graph.calculate_transfer_distance()   #计算每层的传输距离和聚合节点
         self.begin_time = []
         self.finish_time = []
         self.layer_tile_latency = []

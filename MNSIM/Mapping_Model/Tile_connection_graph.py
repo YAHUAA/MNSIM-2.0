@@ -5,7 +5,6 @@ import sys
 import os
 import math
 import configparser as cp
-
 work_path = os.path.dirname(os.getcwd())
 sys.path.append(work_path)
 from MNSIM.Hardware_Model import *
@@ -88,6 +87,10 @@ def generate_snake_matrix(row, column):
             start += 1
     return matrix
 
+# 0 1 8 9
+# 3 2 7 10
+# 4 5 6 11
+# 15141312
 def generate_hui_matrix(row, column):
     matrix = np.zeros([row, column])
     state = 0
@@ -102,20 +105,20 @@ def generate_hui_matrix(row, column):
         if x == 0:
             matrix[i][j] = start
         else:
-            if state == 0:
-                j += 1
+            if state == 0:   
+                j += 1    #右移
                 matrix[i][j] = start
                 state = 1
             elif state == 1:
                 if dl == 0:
-                    i += 1
+                    i += 1   #下移
                     matrix[i][j] = start
                     step += 1
                     if step == stride:
                         dl = 1
                         step = 0
                 elif dl == 1:
-                    j -= 1
+                    j -= 1   #左移
                     matrix[i][j] = start
                     step += 1
                     if step == stride:
@@ -124,19 +127,19 @@ def generate_hui_matrix(row, column):
                         stride += 1
                         state = 2
             elif state == 2:
-                i += 1
+                i += 1    #下移
                 matrix[i][j] = start
                 state = 3
             elif state == 3:
                 if ru == 0:
-                    j += 1
+                    j += 1   #右移
                     matrix[i][j] = start
                     step += 1
                     if step == stride:
                         ru = 1
                         step = 0
                 elif ru == 1:
-                    i -= 1
+                    i -= 1   #上移
                     matrix[i][j] = start
                     step += 1
                     if step == stride:
@@ -205,20 +208,28 @@ def generate_zigzag_matrix(row, column):
     return matrix
 
 
+
+
+
 class TCG():
-    def __init__(self, NetStruct, SimConfig_path, multiple=None):
+    def __init__(self, NetStruct, SimConfig_path, multiple=None,device_cfg=None):
+        self.device_cfg = device_cfg
         # NetStruct: layer structure, SimConfig_path: Hardware config path, multiple: allocate more resources for some layers (i.e., duplicate)
         TCG_config = cp.ConfigParser()
         TCG_config.read(SimConfig_path, encoding='UTF-8')
         if multiple is None:
             multiple = [1] * len(NetStruct)
         self.tile = tile(SimConfig_path)
+        
+        #定义数字、模拟tile
+        self.dcim_tile = tile(SimConfig_path)
+
         self.net = NetStruct
         self.layer_num = len(self.net)
         self.layer_tileinfo = []
         self.xbar_polarity = int(TCG_config.get('Process element level', 'Xbar_Polarity'))
-        self.tile_connection = int(TCG_config.get('Architecture level', 'Tile_Connection'))
-        self.tile_num = list(map(int, TCG_config.get('Architecture level', 'Tile_Num').split(',')))
+        self.tile_connection = int(TCG_config.get('Architecture level', 'Tile_Connection'))   
+        self.tile_num = list(map(int, TCG_config.get('Architecture level', 'Tile_Num').split(',')))  #[64,64]
         if self.tile_num[0] == 0:
             self.tile_num[0] = 8
             self.tile_num[1] = 8
@@ -491,12 +502,26 @@ class TCG():
             self.mapping_order = generate_normal_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
         elif self.tile_connection == 1:
             self.mapping_order = generate_snake_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
-        elif self.tile_connection == 2:
+        elif self.tile_connection == 2:  #
             self.mapping_order = generate_hui_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
         elif self.tile_connection == 3:
             self.mapping_order = generate_zigzag_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
+        elif self.tile_connection == 4:  #数模混合
+            self.mapping_order = generate_mixed_matrix(self.mapping_order.shape[0], self.mapping_order.shape[1])
 
+#生成对于tile的mapping-result
+#modify——不同器件的tile阵列大小设置不同
     def mapping_net(self):
+        """
+        Maps the network layers to the tiles based on the mapping order and layer information.
+
+        This function generates the mapping matrix and then iterates through the mapping order to allocate
+        tiles to different layers. It only allocates tiles for convolutional layers, pooling layers, and
+        fully connected layers. The allocation is based on the start ID of each layer.
+
+        Returns:
+            None
+        """
         self.mapping_matrix_gen()
         for i in range(self.mapping_order.shape[0]):
             for j in range(self.mapping_order.shape[1]):
@@ -506,10 +531,10 @@ class TCG():
                             # only allocate tile for conv layers, pooling layers, and fc layers
                             if ((self.mapping_order[i][j] >= self.layer_tileinfo[layer_id]['startid']) &
                                     (self.mapping_order[i][j] < self.layer_tileinfo[layer_id + 1]['startid'])):
-                                self.mapping_result[i][j] = layer_id
+                                self.mapping_result[i][j] = layer_id   #分配id到对应的tile
                                 break
                             elif self.mapping_order[i][j] >= self.layer_tileinfo[self.layer_num - 1]['startid']:
-                                self.mapping_result[i][j] = self.layer_num - 1
+                                self.mapping_result[i][j] = self.layer_num - 1  
 
     def calculate_transfer_distance(self):
         for layer_id in range(self.layer_num - 1):
@@ -551,6 +576,7 @@ class TCG():
                                 if dis > maxdis:
                                     maxdis = dis
                         self.transLayer_distance[0][layer_id] = maxdis
+                    #多个tile，选择最小传输距离的tile作为聚合节点
                     else:
                         mindis_total = 1000
                         for A in range(len(src_pos)):
@@ -573,6 +599,7 @@ class TCG():
                                 self.transLayer_distance[0][layer_id] = maxdis_out
                                 self.aggregate_arg[layer_id] = src_pos[A]
                                 mindis_total = tempdis
+                #计算所有输出层到tile数组中心的最大距离
                 elif self.layer_tileinfo[layer_id]['type'] == 'element_sum' or self.layer_tileinfo[layer_id]['type'] == 'element_multiply':
                     maxdis_out = 0
                     for idx in self.layer_tileinfo[layer_id]['Outputindex']:
