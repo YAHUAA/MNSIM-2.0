@@ -25,11 +25,16 @@ class ProcessElement(crossbar, DAC, ADC):
 	def __init__(self, SimConfig_path,device_type):
 		self.device_type = device_type
 		crossbar.__init__(self, SimConfig_path,device_type)
-		DAC.__init__(self, SimConfig_path)
-		ADC.__init__(self, SimConfig_path)
+		#TODO when device_type == sot_ha/la,we don't need DAC or ADC
+		DAC.__init__(self, SimConfig_path)  # 例化 DAC
+		ADC.__init__(self, SimConfig_path)  #例化 ADC
 		PE_config = cp.ConfigParser()
 		PE_config.read(SimConfig_path, encoding='UTF-8')
-		self.PIM_type_pe = int(PE_config.get('Process element level', 'PIM_Type'))
+		#self.PIM_type_pe = int(PE_config.get('Process element level', 'PIM_Type'))
+		if self.device_type == 'sot_ha' or self.device_type == 'sot_la':
+			PIM_type_pe = 0
+		else:
+			self.PIM_type_pe = 1
 		self.sub_position = 0
 		__xbar_polarity = int(PE_config.get('Process element level', 'Xbar_Polarity'))
 		# self.PE_multiplex_xbar_num = list(

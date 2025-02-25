@@ -75,7 +75,7 @@ def main():
     __TestInterface = TrainTestInterface(network_module=args.NN, dataset_module='MNSIM.Interface.cifar10',  
         SimConfig_path=args.hardware_description, weights_file=args.weights, device=args.device)
    
-    structure_file = __TestInterface.get_structure()
+    structure_file = __TestInterface.get_structure()  #return net_array
     TCG_mapping = TCG(structure_file, args.hardware_description)
     # print(TCG_mapping.max_inbuf_size)
     # print(TCG_mapping.max_outbuf_size)
@@ -84,7 +84,7 @@ def main():
         hardware_modeling_start_time = time.time()
         __latency = Model_latency(NetStruct=structure_file, SimConfig_path=args.hardware_description, TCG_mapping=TCG_mapping)
         if not (args.disable_inner_pipeline):
-            __latency.calculate_model_latency(mode=1)
+            __latency.calculate_model_latency(mode=1)   
             # __latency.calculate_model_latency_nopipe()
             
         else:
