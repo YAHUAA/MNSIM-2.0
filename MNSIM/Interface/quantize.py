@@ -221,7 +221,7 @@ class QuantizeLayer(nn.Module):
             return output
         # fix training
         if METHOD == 'FIX_TRAIN':
-           
+        
             weight=torch.cat([l.weight for l in self.sublayer_list], dim = 1)
             
             # quantize weight

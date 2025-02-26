@@ -7,7 +7,7 @@ import math
 test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd())),"SimConfig.ini")
 	#Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
-
+#digital module for multiplier module
 class multiplier(object):
 	def __init__(self, SimConfig_path, bitwidth = None):
 		# frequency unit: MHz

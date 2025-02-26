@@ -56,6 +56,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_simulation_level = int(PE_config.get('Algorithm Configuration', 'Simulation_Level'))
 		self.PE_xbar_list = []
 		self.PE_xbar_enable = []
+		#create the list for pe_xbar
 		for i in range(self.group_num):
 			self.PE_xbar_list.append([])
 			self.PE_xbar_enable.append([])
@@ -186,7 +187,7 @@ class ProcessElement(crossbar, DAC, ADC):
 			assert self.PE_group_ADC_num > 0, "ADC number in one group < 0"
 		self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
 		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_group_ADC_num)
-		self.output_mux = math.ceil(self.xbar_column/(self.PE_group_ADC_num/self.subarray_num) * (self.sub_position+1))
+		self.output_mux = math.ceil(self.xbar_column/(self.PE_group_ADC_num/self.subarray_num) * (self.sub_position+1))  #QUES:这里self.PE_group_ADC_num/self.subarray_num 是什么意思？ADC_num与subarray_num有什么关系?
 		assert self.output_mux > 0
 
 	def calculate_DAC_num(self):
@@ -200,7 +201,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.input_demux = math.ceil(self.subarray_size*self.PE_multiplex_xbar_num[0]/(self.PE_group_DAC_num/self.subarray_num))
 		assert self.input_demux > 0
 
-	def calculate_demux_area(self):
+	def calculate_demux_area(self):   #QUES:what is the demux?
 		transistor_area = 10* self.transistor_tech * self.transistor_tech / 1000000
 		demux_area_dict = {2: 8*transistor_area, # 2-1: 8 transistors
 						   4: 24*transistor_area, # 4-1: 3 * 2-1

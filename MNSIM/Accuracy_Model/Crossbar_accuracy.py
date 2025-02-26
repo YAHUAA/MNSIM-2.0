@@ -42,6 +42,7 @@ class crossbar_accuracy():
         print(self.column)
         self.enable_matrix = []
 
+    #TODO: add the SAF for ha and la
     def SAF_effect(self):
         bound1 = self.SAF[0]*0.01
         bound2 = self.SAF[1]*0.01 + bound1
@@ -55,7 +56,7 @@ class crossbar_accuracy():
                     temp.append(-2) # HRS
                 else:
                     temp.append(1)
-            self.enable_matrix.append(temp)
+            self.enable_matrix.append(temp)  # 1: normal, -1: LRS, -2: HRS  ???
 
 
 
@@ -72,9 +73,9 @@ class crossbar_accuracy():
                 if self.enable_matrix[i][j] == 1:
                     resistance = self.standard_cell_resistance[read_matrix[i][j]]
                     temp_resistance = random.uniform(resistance*(1-0.01*self.decice_variation), resistance*(1+0.01*self.decice_variation))
-                elif self.enable_matrix[i][j] == -1:
+                elif self.enable_matrix[i][j] == -1:# stuck at lrs
                     temp_resistance = self.standard_cell_resistance[-1]
-                else:
+                else:   #stuck at hrs
                     temp_resistance = self.standard_cell_resistance[0]
                 temp_resistance += self.wire_resistance*(self.row + j - i + 1)
                 temp.append(1/temp_resistance)
