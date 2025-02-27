@@ -11,9 +11,9 @@ from MNSIM.Hardware_Model.PE import ProcessElement
 from MNSIM.Hardware_Model.Buffer import buffer
 from MNSIM.Interface.interface import *
 
-
+#TODO: add the latency of the HA and FA
 class PE_latency_analysis():
-    def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8, default_buf_size = 16):
+    def __init__(self, SimConfig_path, read_row=0, read_column=0, indata=0, rdata=0, inprecision = 8, default_buf_size = 16,device_type = 'ACIM_LA'):
         # read_row: activated WL number in crossbar
         # read_column: activated BL number in crossbar
         # indata: volume of input data (for PE) (Byte)
@@ -23,24 +23,25 @@ class PE_latency_analysis():
         # default_buf_size: default input buffer size (KB)
         PEl_config = cp.ConfigParser()
         PEl_config.read(SimConfig_path, encoding='UTF-8')
-        self.inbuf = buffer(SimConfig_path=SimConfig_path, buf_level=1, default_buf_size=default_buf_size)
-        self.PE = ProcessElement(SimConfig_path)
+        self.inbuf = buffer(SimConfig_path=SimConfig_path, buf_level=1, default_buf_size=default_buf_size)  #TODO: should we adjust the buffer size?
+        self.PE = ProcessElement(SimConfig_path,device_type)   #TODO: add the device type
         self.inbuf.calculate_buf_write_latency(indata)
         self.PE_buf_wlatency = self.inbuf.buf_wlatency
           # unit: ns
         self.digital_period = 1/float(PEl_config.get('Digital module', 'Digital_Frequency'))*1e3
         self.inbuf.calculate_buf_read_latency(rdata)
         self.PE_buf_rlatency = self.inbuf.buf_rlatency
+        # calculate the latency according to the DAC_precision an
         multiple_time = math.ceil(inprecision/self.PE.DAC_precision) * math.ceil(read_row/self.PE.PE_group_DAC_num) *\
-                        math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))
+                        math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))   #??? 乘法次数 =（输入的数据精度/DAC精度） * （读取的行数/PE组的DAC数） * （读取的列数/PE每组的ADC数*子阵列数）
         self.PE.calculate_xbar_read_latency()
 
         Transistor_Tech = int(PEl_config.get('Crossbar level', 'Transistor_Tech'))
 
         Row = self.PE.subarray_size
         Column = self.PE.xbar_size[1]
-        DAC_num = self.PE.PE_group_DAC_num / self.PE.subarray_num
-        ADC_num = self.PE.PE_group_ADC_num / self.PE.subarray_num
+        DAC_num = self.PE.PE_group_DAC_num / self.PE.subarray_num # DAC number in each subarray
+        ADC_num = self.PE.PE_group_ADC_num / self.PE.subarray_num # ADC number in each subarray
 
         # ns  (using NVSim)
         decoderLatency_dict = {
