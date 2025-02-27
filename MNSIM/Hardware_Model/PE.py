@@ -32,7 +32,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		PE_config.read(SimConfig_path, encoding='UTF-8')
 		#self.PIM_type_pe = int(PE_config.get('Process element level', 'PIM_Type'))
 		if self.device_type == 'sot_ha' or self.device_type == 'sot_la':
-			PIM_type_pe = 0
+			self.PIM_type_pe = 0
 		else:
 			self.PIM_type_pe = 1
 		self.sub_position = 0
@@ -56,7 +56,6 @@ class ProcessElement(crossbar, DAC, ADC):
 		self.PE_simulation_level = int(PE_config.get('Algorithm Configuration', 'Simulation_Level'))
 		self.PE_xbar_list = []
 		self.PE_xbar_enable = []
-		#create the list for pe_xbar
 		for i in range(self.group_num):
 			self.PE_xbar_list.append([])
 			self.PE_xbar_enable.append([])
@@ -177,31 +176,42 @@ class ProcessElement(crossbar, DAC, ADC):
 
 		self.calculate_inter_PE_connection()
 
+#TODO：for SRAM, wo don't need ADC or DAC
 	def calculate_ADC_num(self):
-		self.calculate_xbar_area()
-		self.calculate_ADC_area()
-		if self.PE_group_ADC_num == 0:
-			self.PE_group_ADC_num = min((self.sub_position+1) * math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)), self.xbar_column)*self.subarray_num  
-			#QUES:(self.sub_position+1)  与 self.PE_multiplex_xbar_num[1] 不重复吗
+		if self.device_type == 'DCIM':
+			self.PE_ADC_num = 0
+			self.output_mux = 0  #TODO: config the output_mux for DCIM
+			assert self.output_mux == 0,'DCIM PE don not need output_mux' 
 		else:
-			assert self.PE_group_ADC_num > 0, "ADC number in one group < 0"
-		self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
-		# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_group_ADC_num)
-		self.output_mux = math.ceil(self.xbar_column/(self.PE_group_ADC_num/self.subarray_num) * (self.sub_position+1))  #QUES:这里self.PE_group_ADC_num/self.subarray_num 是什么意思？ADC_num与subarray_num有什么关系?
-		assert self.output_mux > 0
+			self.calculate_xbar_area()
+			self.calculate_ADC_area()
+			if self.PE_group_ADC_num == 0:
+				self.PE_group_ADC_num = min((self.sub_position+1) * math.ceil(math.sqrt(self.xbar_area)*self.PE_multiplex_xbar_num[1]/math.sqrt(self.ADC_area)), self.xbar_column)*self.subarray_num  
+				#QUES:(self.sub_position+1)  与 self.PE_multiplex_xbar_num[1] 不重复吗
+			else:
+				assert self.PE_group_ADC_num > 0, "ADC number in one group < 0"
+			self.PE_ADC_num = self.group_num * self.PE_group_ADC_num
+			# self.output_mux = math.ceil(self.xbar_column*self.PE_multiplex_xbar_num[1]/self.PE_group_ADC_num)
+			#每个ADC覆盖的列数
+			self.output_mux = math.ceil(self.xbar_column/(self.PE_group_ADC_num/self.subarray_num) * (self.sub_position+1))
+			assert self.output_mux > 0
 
 	def calculate_DAC_num(self):
-		self.calculate_xbar_area()
-		self.calculate_DAC_area()
-		if self.PE_group_DAC_num == 0:
-			self.PE_group_DAC_num = min(math.ceil(math.sqrt(self.xbar_area)/self.subarray_num * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.subarray_size)*self.subarray_num
+		if self.device_type == 'DCIM':
+			self.PE_DAC_num = 0
+			self.input_demux = 0
 		else:
-			assert self.PE_group_DAC_num > 0, "DAC number in one group < 0"
-		self.PE_DAC_num = self.group_num * self.PE_group_DAC_num
-		self.input_demux = math.ceil(self.subarray_size*self.PE_multiplex_xbar_num[0]/(self.PE_group_DAC_num/self.subarray_num))
-		assert self.input_demux > 0
+			self.calculate_xbar_area()
+			self.calculate_DAC_area()
+			if self.PE_group_DAC_num == 0:
+				self.PE_group_DAC_num = min(math.ceil(math.sqrt(self.xbar_area)/self.subarray_num * self.PE_multiplex_xbar_num[0] / math.sqrt(self.DAC_area)), self.subarray_size)*self.subarray_num
+			else:
+				assert self.PE_group_DAC_num > 0, "DAC number in one group < 0"
+			self.PE_DAC_num = self.group_num * self.PE_group_DAC_num
+			self.input_demux = math.ceil(self.subarray_size*self.PE_multiplex_xbar_num[0]/(self.PE_group_DAC_num/self.subarray_num))
+			assert self.input_demux > 0
 
-	def calculate_demux_area(self):   #QUES:what is the demux?
+	def calculate_demux_area(self):
 		transistor_area = 10* self.transistor_tech * self.transistor_tech / 1000000
 		demux_area_dict = {2: 8*transistor_area, # 2-1: 8 transistors
 						   4: 24*transistor_area, # 4-1: 3 * 2-1
@@ -211,8 +221,10 @@ class ProcessElement(crossbar, DAC, ADC):
 						   64: 1944*transistor_area
 		}
 		# unit: um^2
-		# TODO: add circuits simulation results
-		if self.input_demux <= 2:
+		# TODO: add circuits simulation result
+		if self.input_demux == 0:
+			self.input_demux_area = 0
+		elif self.input_demux <= 2:
 			self.input_demux_area = demux_area_dict[2]
 		elif self.input_demux<=4:
 			self.input_demux_area = demux_area_dict[4]
@@ -236,7 +248,9 @@ class ProcessElement(crossbar, DAC, ADC):
 		}
 		# unit: um^2
 		# TODO: add circuits simulation results
-		if self.output_mux <= 2:
+		if self.output_mux == 0:
+			self.output_mux_area = 0
+		elif self.output_mux <= 2:
 			self.output_mux_area = mux_area_dict[2]
 		elif self.output_mux <= 4:
 			self.output_mux_area = mux_area_dict[4]
@@ -249,7 +263,7 @@ class ProcessElement(crossbar, DAC, ADC):
 		else:
 			self.output_mux_area = mux_area_dict[64]
 
-	def calculate_inter_PE_connection(self):
+	def calculate_inter_PE_connection(self):   #PE内部的连接，每两个连接在一起
 		temp = self.group_num
 		self.PE_adder_num = 0
 		while temp/2 >= 1:
@@ -266,7 +280,7 @@ class ProcessElement(crossbar, DAC, ADC):
 				self.num_occupied_group = self.group_num
 				for i in range(self.group_num):
 					if self.PE_multiplex_xbar_num[1] == 1:
-						self.PE_xbar_list[i][0].xbar_read_config()
+						self.PE_xbar_list[i][0].xbar_read_config()  #initial the xbar for reading
 						self.PE_xbar_enable[i][0] = 1
 						self.PE_utilization += self.PE_xbar_list[i][0].xbar_utilization
 					else:
@@ -275,7 +289,7 @@ class ProcessElement(crossbar, DAC, ADC):
 						self.PE_utilization += self.PE_xbar_list[i][0].xbar_utilization
 						self.PE_xbar_list[i][1].xbar_read_config()
 						self.PE_xbar_enable[i][1] = 1
-						self.PE_utilization += self.PE_xbar_list[i][0].xbar_utilization
+						self.PE_utilization += self.PE_xbar_list[i][1].xbar_utilization
 			else:
 				assert len(read_row) == len(read_column), "read_row and read_column must be equal in length"
 				self.num_occupied_group = len(read_row)

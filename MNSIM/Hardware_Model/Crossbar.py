@@ -130,6 +130,7 @@ class crossbar(device):
 				self.xbar_num_read_column = self.xbar_column
 				self.xbar_num_read_row = self.xbar_row
 			else:
+				#initial the read matrix
 				for i in range(len(read_matrix)):
 					for j in range(len(read_matrix[0])):
 						assert int(read_matrix[i][j]) < self.device_level, "Weight value (read) exceeds the resistance range"
