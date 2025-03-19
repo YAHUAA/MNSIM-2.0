@@ -32,8 +32,15 @@ class PE_latency_analysis():
         self.inbuf.calculate_buf_read_latency(rdata)
         self.PE_buf_rlatency = self.inbuf.buf_rlatency
         # calculate the latency according to the DAC_precision an
-        multiple_time = math.ceil(inprecision/self.PE.DAC_precision) * math.ceil(read_row/self.PE.PE_group_DAC_num) *\
+
+        #！
+        if self.device_type == 'ACIM_LA' or self.device_type == 'ACIM_HA':
+            multiple_time = math.ceil(inprecision/self.PE.DAC_precision) * math.ceil(read_row/self.PE.PE_group_DAC_num) *\
                         math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))   #??? 乘法次数 =（输入的数据精度/DAC精度） * （读取的行数/PE组的DAC数） * （读取的列数/PE每组的ADC数*子阵列数）
+        elif self.device == 'DCIM':
+            multiple_time = read_column  #for DCIM,the mutiple times is equal to the read column
+        else:
+            raise ValueError , 'The device type is not supported'
         self.PE.calculate_xbar_read_latency()
 
         Transistor_Tech = int(PEl_config.get('Crossbar level', 'Transistor_Tech'))
@@ -78,7 +85,13 @@ class PE_latency_analysis():
         self.input_demux_latency = multiple_time*self.decoderLatency
         self.adder_latency = math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))*math.ceil(math.log2(self.PE.group_num))*self.digital_period
         self.output_mux_latency = multiple_time*self.muxLatency
-        self.computing_latency = self.DAC_latency+self.xbar_latency+self.ADC_latency
+
+        #!
+        if self.device_type == 'ACIM_LA' or self.device_type == 'ACIM_HA':
+            self.computing_latency = self.DAC_latency+self.xbar_latency+self.ADC_latency
+        else:
+            self.computing_latency = self.xbar_latency  
+
         self.oReg_latency = math.ceil(read_column/(self.PE.PE_group_ADC_num/self.PE.subarray_num))*self.digital_period
         self.PE_digital_latency = self.iReg_latency + self.shiftreg_latency + self.input_demux_latency + self.adder_latency + self.output_mux_latency + self.oReg_latency
         self.PE_latency = self.PE_buf_wlatency + self.PE_buf_rlatency + self.computing_latency + self.PE_digital_latency

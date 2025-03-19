@@ -192,6 +192,7 @@ class crossbar(device):
 			self.wire_capacity = 1
 				#TODO: Update the wire capacity calculation according to different technology sizes
 
+	#！
 	def calculate_xbar_read_latency(self):
 		# unit: ns
 		self.calculate_wire_resistance()
@@ -207,6 +208,7 @@ class crossbar(device):
 		# self.xbar_read_latency = self.device_read_latency + wire_latency
 
 	#TODO：consider the wire latency in the read operation for different device types
+	#！
 		if self.device_type == "DCIM":
 			wire_latency = 1  
 		elif self.device_type == "ACIM_HA":
