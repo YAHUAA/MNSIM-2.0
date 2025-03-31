@@ -236,13 +236,13 @@ class crossbar(device):   #TODO:add device_type and modify corresponding functio
 			assert self.xbar_utilization <= 1, "Crossbar usage utilization rate > 1"
 			self.calculate_device_read_power()
 			self.xbar_read_power += self.xbar_num_read_row * self.xbar_num_read_column * self.device_read_power
-			if self.cell_type[0] =='0':
+			if self.cell_type[0] =='0':  
 				self.calculate_device_read_power(self.device_resistance[0])
 				self.xbar_read_power += 0.25 * self.xbar_num_read_row * (self.xbar_column - self.xbar_num_read_column) \
-										* self.device_read_power
+										* self.device_read_power   #QUES:???
 		else:
 			temp_v2 = self.xbar_read_vector * self.xbar_read_vector
-			self.xbar_read_power += (self.xbar_read_matrix.T.dot(temp_v2)).sum()
+			self.xbar_read_power += (self.xbar_read_matrix.T.dot(temp_v2)).sum()  #模拟乘加操作  power = v^2 * g
 			if self.device_type == 'NVM' and self.cell_type[0] == '0':
 				temp_matrix = np.ones((self.xbar_num_read_row, self.xbar_column-self.xbar_num_read_column)) / self.device_resistance[0]
 				# print("temp_matrix",temp_matrix.T)
@@ -261,7 +261,7 @@ class crossbar(device):   #TODO:add device_type and modify corresponding functio
 		# Assuming that the write operation of cells in one row can be performed concurrently
 		if self.xbar_simulation_level == 0:
 			self.calculate_device_write_power()
-			self.xbar_write_power = self.xbar_num_write_column * self.device_write_power
+			self.xbar_write_power = self.xbar_num_write_column * self.device_write_power  #HACK：how to write xbar?
 		else:
 			temp_v2 = self.xbar_write_vector * self.xbar_write_vector
 			assert self.xbar_num_write_row>0, "xbar_num_write_row is 0, consider use the write_config function"
@@ -269,10 +269,15 @@ class crossbar(device):   #TODO:add device_type and modify corresponding functio
 
 	def calculate_xbar_read_energy(self):
 		#unit: nJ
-		if self.device_type == 'NVM':
-			self.xbar_read_energy = self.xbar_read_power * self.xbar_read_latency
-		elif self.device_type == 'SRAM':
+		if self.device_type == 'DCIM':  #TODO:calculate read_energy according to device_type
 			self.xbar_read_energy = self.xbar_num_read_row * self.xbar_num_read_column * self.device_read_energy * 1e6
+		elif self.device_type == 'ACIM_LA': 
+			self.xbar_read_energy = 0
+		elif self.device_type == 'ACIM_HA': 
+			self.xbar_read_energy = 0
+		else:
+			raise(ValueError,'wrong device')
+		
 
 	def calculate_xbar_write_energy(self):  
 		#unit: nJ
