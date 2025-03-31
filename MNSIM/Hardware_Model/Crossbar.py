@@ -11,7 +11,7 @@ test_SimConfig_path = os.path.join(os.path.dirname(os.path.dirname(os.getcwd()))
 # Default SimConfig file path: MNSIM_Python/SimConfig.ini
 
 
-class crossbar(device):
+class crossbar(device):   #TODO:add device_type and modify corresponding function 
 	def __init__(self, SimConfig_path,device_type):
 		device.__init__(self,SimConfig_path,device_type)
 		xbar_config = cp.ConfigParser()
@@ -208,7 +208,6 @@ class crossbar(device):
 		# self.xbar_read_latency = self.device_read_latency + wire_latency
 
 	#TODO：consider the wire latency in the read operation for different device types
-	#！
 		if self.device_type == "DCIM":
 			wire_latency = 1  
 		elif self.device_type == "ACIM_HA":
@@ -217,10 +216,9 @@ class crossbar(device):
 			wire_latency = 1
 		else:
 			raise ValueError("Unsupported device type")
+		self.xbar_read_latency = self.device_read_latency + wire_latency #HACK: explore how to calculate xbar_read_latency
 
 	def calculate_xbar_write_latency(self):
-		#TODO: consider the wire latency in the write operation for different device types
-
 		# Notice: before calculating write latency, xbar_write_config must be executed
 		self.xbar_write_latency	= self.device_write_latency * self.xbar_num_write_row
 		# self.xbar_write_latency = self.device_write_latency * min(math.ceil(num_write_row/num_multi_row), num_write_column) * min(num_multi_row, num_write_row)
