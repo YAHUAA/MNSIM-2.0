@@ -25,7 +25,6 @@ class ProcessElement(crossbar, DAC, ADC):
 	def __init__(self, SimConfig_path,device_type):
 		self.device_type = device_type
 		crossbar.__init__(self, SimConfig_path,device_type)
-		#TODO when device_type == sot_ha/la,we don't need DAC or ADC
 		DAC.__init__(self, SimConfig_path)  # 例化 DAC
 		ADC.__init__(self, SimConfig_path)  #例化 ADC
 		PE_config = cp.ConfigParser()
@@ -176,11 +175,12 @@ class ProcessElement(crossbar, DAC, ADC):
 
 		self.calculate_inter_PE_connection()
 
-#TODO：for SRAM, wo don't need ADC or DAC
+
 	def calculate_ADC_num(self):
 		if self.device_type == 'DCIM':
 			self.PE_ADC_num = 0
-			self.output_mux = 0  #TODO: config the output_mux for DCIM
+			self.PE_DAC_num = 0
+			self.output_mux = 0  
 			assert self.output_mux == 0,'DCIM PE don not need output_mux' 
 		else:
 			self.calculate_xbar_area()

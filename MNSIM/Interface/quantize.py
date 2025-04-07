@@ -80,6 +80,7 @@ class QuantizeLayer(nn.Module):
         # split weights
         if self.layer_config['type'] == 'conv':
             assert 'in_channels' in self.layer_config.keys()
+            #TODO:implement diffirent mapping method
             channel_N = (self.hardware_config['xbar_size'] // (self.layer_config['kernel_size'] ** 2))
                 # number of channels stored in one xbar
             complete_bar_num = self.layer_config['in_channels'] // channel_N
